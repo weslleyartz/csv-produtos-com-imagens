@@ -45,7 +45,7 @@ Este projeto é um gerador de CSV automatizado com interface gráfica, feito em 
 
 2. Execute o script Python:
    
-   <pre>```bash # python gerador_csv.py  ``` </pre>
+   <pre> python gerador_csv.py </pre>
 
 3. Na interface gráfica:
 
