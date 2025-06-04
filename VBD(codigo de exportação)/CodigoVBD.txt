@@ -1,0 +1,32 @@
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(1) ' Altere se sua aba tiver outro nome
+
+    Dim ultimaLinha As Long
+    ultimaLinha = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+
+    Dim colunasExportar As Variant
+    colunasExportar = Array(1, 2, 4) ' Colunas A, B, D
+
+    Dim nomesArquivos As Variant
+    nomesArquivos = Array("codigos.txt", "nomes.txt", "precos.txt")
+
+    Dim caminho As String
+    caminho = ThisWorkbook.Path & "\" ' Mesma pasta do arquivo Excel
+
+    Dim i As Integer, j As Long
+    For i = LBound(colunasExportar) To UBound(colunasExportar)
+        Dim col As Integer
+        col = colunasExportar(i)
+
+        Dim nomeArquivo As String
+        nomeArquivo = nomesArquivos(i)
+
+        Open caminho & nomeArquivo For Output As #1
+        For j = 1 To ultimaLinha
+            Print #1, ws.Cells(j, col).Value
+        Next j
+        Close #1
+    Next i
+
+    MsgBox "Colunas exportadas com sucesso para arquivos TXT!"
+End Sub
