@@ -1,19 +1,24 @@
+Sub ExportarColunasParaTXT_UTF8()
+
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(1) ' Altere se sua aba tiver outro nome
+    Set ws = ThisWorkbook.Sheets(1) ' Ajuste conforme necessário
 
     Dim ultimaLinha As Long
     ultimaLinha = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
 
     Dim colunasExportar As Variant
-    colunasExportar = Array(1, 2, 4) ' Colunas A, B, D
+    colunasExportar = Array(1, 2, 4) ' Colunas A, B, D (D é 4, não 3)
 
     Dim nomesArquivos As Variant
     nomesArquivos = Array("codigos.txt", "nomes.txt", "precos.txt")
 
     Dim caminho As String
-    caminho = ThisWorkbook.Path & "\" ' Mesma pasta do arquivo Excel
+    caminho = ThisWorkbook.Path & "\" ' Mesmo diretório do Excel
 
     Dim i As Integer, j As Long
+
+    Dim stream As Object ' ADODB.Stream
+
     For i = LBound(colunasExportar) To UBound(colunasExportar)
         Dim col As Integer
         col = colunasExportar(i)
@@ -21,12 +26,23 @@
         Dim nomeArquivo As String
         nomeArquivo = nomesArquivos(i)
 
-        Open caminho & nomeArquivo For Output As #1
-        For j = 1 To ultimaLinha
-            Print #1, ws.Cells(j, col).Value
-        Next j
-        Close #1
+        Set stream = CreateObject("ADODB.Stream")
+        With stream
+            .Type = 2 ' Texto
+            .Charset = "utf-8"
+            .Open
+
+            For j = 1 To ultimaLinha
+                .WriteText ws.Cells(j, col).Value & vbCrLf
+            Next j
+
+            .SaveToFile caminho & nomeArquivo, 2 ' 2 = adSaveCreateOverWrite
+            .Close
+        End With
+
+        Set stream = Nothing
     Next i
 
-    MsgBox "Colunas exportadas com sucesso para arquivos TXT!"
+    MsgBox "Colunas exportadas com sucesso para arquivos TXT em UTF-8!"
+
 End Sub

@@ -9,7 +9,7 @@ codigos = []
 nomes = []
 precos = []
 pasta_imagens = ""
-extensao = ".png"
+extensao = ".jpg"
 
 # Log
 arquivo_log = "log_execucao.txt"
@@ -72,7 +72,7 @@ def gerar_csv():
             writer.writerow(["Código", "Nome", "Preço", "@Imagem"])
 
             for codigo, nome, preco in zip(codigos, nomes, precos):
-                caminho_arquivo = os.path.join(pasta_imagens, codigo + extensao)
+                caminho_arquivo = os.path.normpath(os.path.join(pasta_imagens, codigo + extensao))
                 if os.path.exists(caminho_arquivo):
                     caminho = caminho_arquivo
                     escrever_log(f"Imagem encontrada: {caminho}")
