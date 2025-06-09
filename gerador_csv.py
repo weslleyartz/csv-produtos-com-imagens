@@ -9,8 +9,12 @@ codigos = []
 nomes = []
 precos = []
 pasta_imagens = ""
+<<<<<<< HEAD
 
 # --- Funções de Log e de Busca de Imagens ---
+=======
+extensao = ".jpg"
+>>>>>>> 574764e35a7337fc6fb63516a219d0071e23109c
 
 # Log
 arquivo_log = "log_execucao.txt"
@@ -129,6 +133,7 @@ def gerar_csv():
             writer.writerow(["Código", "Nome", "Preço", "@Imagem"])
 
             for codigo, nome, preco in zip(codigos, nomes, precos):
+<<<<<<< HEAD
                 
                 # Pega o índice da imagem a ser usada para este código (0 para a primeira vez, 1 para a segunda, etc.)
                 indice_da_imagem = contagem_uso_codigos.get(codigo, 0)
@@ -143,6 +148,12 @@ def gerar_csv():
                         escrever_log(f"Para o código {codigo} (ocorrência {indice_da_imagem + 1}), encontrou: {caminho_final}")
                     else:
                         escrever_log(f"AVISO: Código {codigo} repetido, mas não há mais imagens (solicitada a {indice_da_imagem + 1}ª, mas só existem {len(mapa_de_imagens[codigo])}).")
+=======
+                caminho_arquivo = os.path.normpath(os.path.join(pasta_imagens, codigo + extensao))
+                if os.path.exists(caminho_arquivo):
+                    caminho = caminho_arquivo
+                    escrever_log(f"Imagem encontrada: {caminho}")
+>>>>>>> 574764e35a7337fc6fb63516a219d0071e23109c
                 else:
                     escrever_log(f"AVISO: Nenhuma imagem encontrada para o código base: {codigo}")
 
