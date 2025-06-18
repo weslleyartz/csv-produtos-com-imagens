@@ -1,0 +1,39 @@
+Sub MarcarDe4Em4Linhas()
+    Dim i As Long
+    Dim ultimaLinha As Long
+    Dim intervalo As Range
+    
+    ' Determina a última linha usada na planilha
+    ultimaLinha = Cells(Rows.Count, 1).End(xlUp).Row
+    
+    ' Percorre a planilha de 4 em 4 linhas
+    For i = 2 To 500 Step 4
+        ' Define o intervalo de 4 linhas (colunas A até Z, ajuste conforme necessário)
+        Set intervalo = Range("e" & i & ":H" & i + 3)
+        
+        ' Aplica o contorno vermelho
+        With intervalo.Borders(xlEdgeTop)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+            .Color = vbRed
+        End With
+        
+        With intervalo.Borders(xlEdgeBottom)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+            .Color = vbRed
+        End With
+        
+        With intervalo.Borders(xlEdgeLeft)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+            .Color = vbRed
+        End With
+        
+        With intervalo.Borders(xlEdgeRight)
+            .LineStyle = xlContinuous
+            .Weight = xlMedium
+            .Color = vbRed
+        End With
+    Next i
+End Sub

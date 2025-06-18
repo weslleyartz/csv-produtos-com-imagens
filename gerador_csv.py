@@ -3,20 +3,17 @@ import csv
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import re
 
 # --- Variáveis Globais ---
 codigos = []
 nomes = []
 precos = []
 pasta_imagens = ""
-<<<<<<< HEAD
+
 
 # --- Funções de Log e de Busca de Imagens ---
-=======
-extensao = ".jpg"
->>>>>>> 574764e35a7337fc6fb63516a219d0071e23109c
 
-# Log
 arquivo_log = "log_execucao.txt"
 def escrever_log(mensagem):
     """Escreve uma mensagem com data e hora no arquivo de log."""
@@ -24,44 +21,58 @@ def escrever_log(mensagem):
         hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log.write(f"[{hora}] {mensagem}\n")
 
-def mapear_imagens_por_codigo(pasta):
+def mapear_imagens_por_codigo(pasta, lista_codigos_produtos):
     """
     Escaneia a pasta de imagens e cria um dicionário onde cada chave é um
-    código base e o valor é uma lista ordenada dos caminhos de imagem.
-    Ex: {'12345': ['caminho/12345-1.jpg', 'caminho/12345-2.jpg']}
+    código de produto (da sua lista) e o valor é uma lista ordenada dos
+    caminhos de imagem que começam com esse código.
+    Ex: {'123456': ['caminho/123456.jpg', 'caminho/123456-1.jpg', 'caminho/123456-7-12.jpg']}
     """
-    mapa_imagens = {}
+    mapa_imagens = {codigo: [] for codigo in lista_codigos_produtos} # Inicializa com todos os códigos de produto
+    escrever_log(f"Iniciando mapeamento de imagens na pasta: {pasta}")
     if not os.path.isdir(pasta):
         escrever_log(f"AVISO: A pasta de imagens '{pasta}' não foi encontrada ou não é um diretório.")
-        return mapa_imagens
+        return {} # Retorna um dicionário vazio se a pasta não existir
 
     for nome_arquivo in os.listdir(pasta):
         # Ignora arquivos que não são de imagem (pode ajustar as extensões)
         if not nome_arquivo.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+            escrever_log(f"IGNORANDO: '{nome_arquivo}' - não é um arquivo de imagem suportado.")
             continue
 
         # Extrai o nome do arquivo sem a extensão
         nome_sem_ext = os.path.splitext(nome_arquivo)[0]
-        
-        # Tenta extrair o código base (parte antes do último hífen)
-        if '-' in nome_sem_ext:
-            codigo_base = nome_sem_ext.rsplit('-', 1)[0]
-        else:
-            codigo_base = nome_sem_ext
-
         caminho_completo = os.path.normpath(os.path.join(pasta, nome_arquivo))
 
-        # Se o código base ainda não está no mapa, cria uma lista para ele
-        if codigo_base not in mapa_imagens:
-            mapa_imagens[codigo_base] = []
+        # Tenta encontrar um código de produto que o nome do arquivo "comece"
+        encontrado_para_codigo = False
+        for codigo_produto in lista_codigos_produtos:
+            # Verifica se o nome do arquivo (sem extensão) começa com o código do produto
+            # E se o que vem depois do código é um hífen, um underscore, ou se não há nada (exata correspondência)
+            if nome_sem_ext.startswith(codigo_produto):
+                suffix_start_index = len(codigo_produto)
+                
+                # Se o nome do arquivo tem exatamente o tamanho do código (ex: "123456" para "123456.jpg")
+                # OU se o caractere após o código é um hífen ou underscore
+                if (len(nome_sem_ext) == suffix_start_index or
+                    (suffix_start_index < len(nome_sem_ext) and 
+                     (nome_sem_ext[suffix_start_index] == '-' or nome_sem_ext[suffix_start_index] == '_'))):
+                    
+                    mapa_imagens[codigo_produto].append(caminho_completo)
+                    escrever_log(f"DEBUG: Mapeado arquivo '{nome_arquivo}' para código de produto '{codigo_produto}'.")
+                    encontrado_para_codigo = True
+                    break # Interrompe a busca por este nome de arquivo se já foi mapeado para um código
         
-        mapa_imagens[codigo_base].append(caminho_completo)
+        if not encontrado_para_codigo:
+            escrever_log(f"AVISO: Arquivo '{nome_arquivo}' não corresponde a nenhum código de produto na lista.")
 
     # Garante que as listas de imagens estejam ordenadas para cada código
-    # Isso é crucial para pegar -1, -2, -3 na ordem correta.
     for codigo in mapa_imagens:
         mapa_imagens[codigo].sort()
-        
+        if mapa_imagens[codigo]: # Log apenas se houver imagens mapeadas
+            escrever_log(f"DEBUG: Código '{codigo}' tem imagens mapeadas (ordenadas): {mapa_imagens[codigo]}")
+            
+    escrever_log(f"Mapeamento de imagens concluído. Total de códigos de produto com imagens encontradas: {sum(1 for v in mapa_imagens.values() if v)}")
     return mapa_imagens
 
 # --- Funções da Interface ---
@@ -76,17 +87,22 @@ def carregar_txt(tipo):
     global codigos, nomes, precos
     try:
         with open(caminho, "r", encoding="utf-8") as f:
-            # Lê as linhas e remove espaços em branco/quebras de linha extras
             linhas = [linha.strip() for linha in f if linha.strip()]
             
             if tipo == "códigos":
-                codigos = linhas
+                codigos.clear() 
+                codigos.extend(linhas)
+                escrever_log(f"VERIFICAR ESTADO: Após carregar códigos, len(codigos) = {len(codigos)}")
             elif tipo == "nomes":
-                nomes = linhas
+                nomes.clear()
+                nomes.extend(linhas)
+                escrever_log(f"VERIFICAR ESTADO: Após carregar nomes, len(nomes) = {len(nomes)}")
             elif tipo == "preços":
-                precos = linhas
+                precos.clear()
+                precos.extend(linhas)
+                escrever_log(f"VERIFICAR ESTADO: Após carregar preços, len(precos) = {len(precos)}")
                 
-        escrever_log(f"{tipo.capitalize()} carregados com sucesso do arquivo: {caminho}")
+        escrever_log(f"{tipo.capitalize()} carregados com sucesso do arquivo: {caminho} ({len(linhas)} linhas)")
         messagebox.showinfo("Sucesso", f"{len(linhas)} {tipo} carregados com sucesso!")
     except Exception as e:
         escrever_log(f"Erro ao carregar o arquivo de {tipo}: {str(e)}")
@@ -98,80 +114,107 @@ def escolher_pasta():
     pasta = filedialog.askdirectory(title="Selecione a pasta de imagens")
     if pasta:
         pasta_imagens = pasta
-        escrever_log(f"Pasta de imagens selecionada: {pasta}")
+        escrever_log(f"VERIFICAR ESTADO: Pasta de imagens selecionada: {pasta}")
         messagebox.showinfo("Sucesso", f"Pasta de imagens selecionada:\n{pasta}")
 
 def gerar_csv():
-    """Função principal que gera o arquivo CSV final."""
-    # Validações iniciais
+    """Função principal que gera o arquivo CSV final com múltiplas imagens por código."""
+    escrever_log("VERIFICAR ESTADO: Iniciando validação para gerar CSV.")
+    escrever_log(f"VERIFICAR ESTADO: Estado atual das listas - Códigos: {len(codigos)}, Nomes: {len(nomes)}, Preços: {len(precos)}")
+    escrever_log(f"VERIFICAR ESTADO: Pasta de imagens: '{pasta_imagens}'")
+
     if not (codigos and nomes and precos):
         messagebox.showwarning("Aviso", "Por favor, carregue os arquivos de códigos, nomes e preços antes de gerar o CSV.")
+        escrever_log("AVISO: Tentativa de gerar CSV sem todos os arquivos carregados.")
         return
     if not pasta_imagens:
         messagebox.showwarning("Aviso", "Por favor, selecione a pasta de imagens.")
+        escrever_log("AVISO: Tentativa de gerar CSV sem pasta de imagens selecionada.")
         return
+    
     if not (len(codigos) == len(nomes) == len(precos)):
-        messagebox.showerror("Erro de Dados", f"As listas têm tamanhos diferentes!\n"
+        messagebox.showerror("Erro de Dados", f"As listas de dados têm tamanhos diferentes!\n"
                                               f"Códigos: {len(codigos)}\n"
                                               f"Nomes: {len(nomes)}\n"
-                                              f"Preços: {len(precos)}")
+                                              f"Preços: {len(precos)}\n"
+                                              f"Por favor, verifique se cada arquivo TXT tem o mesmo número de linhas.")
+        escrever_log(f"ERRO: Listas de dados com tamanhos diferentes - Códigos: {len(codigos)}, Nomes: {len(nomes)}, Preços: {len(precos)}")
         return
 
     arquivo_csv = "produtos_com_caminhos.csv"
-    escrever_log("Iniciando geração do CSV...")
+    escrever_log("Iniciando geração do CSV com múltiplas imagens...")
 
-    # 1. Mapeia todas as imagens da pasta ANTES de iniciar o loop
-    mapa_de_imagens = mapear_imagens_por_codigo(pasta_imagens)
-    escrever_log(f"Mapeadas {sum(len(v) for v in mapa_de_imagens.values())} imagens em {len(mapa_de_imagens)} códigos base.")
+    mapa_de_imagens = mapear_imagens_por_codigo(pasta_imagens, codigos)
 
-    # 2. Cria um contador para rastrear o uso de cada código repetido
-    contagem_uso_codigos = {}
+    # --- AGRUPAMENTO: Lidar com duplicatas de código-produto-preço AQUI ---
+    dados_finais_para_csv = {}
+    codigos_processados_ordem = [] 
+
+    for i, codigo in enumerate(codigos):
+        nome = nomes[i]
+        preco = precos[i]
+
+        if codigo not in dados_finais_para_csv:
+            # Se o código ainda não foi processado, adiciona suas informações
+            dados_finais_para_csv[codigo] = {
+                "nome": nome,
+                "preco": preco,
+                "imagens": mapa_de_imagens.get(codigo, []) # Pega as imagens mapeadas
+            }
+            codigos_processados_ordem.append(codigo) 
+        # Se o código já existe, simplesmente ignoramos esta ocorrência.
+        # Isso garante que apenas a primeira combinação (código, nome, preço) seja usada
+        # e todas as imagens para ESSE CÓDIGO já foram coletadas pelo mapeamento de imagens.
+
+    escrever_log(f"VERIFICAR ESTADO: Total de códigos únicos a serem processados: {len(codigos_processados_ordem)}")
+    # --- FIM DO AGRUPAMENTO ---
+
+
+    # Determina o máximo de imagens associadas a um mesmo código
+    max_colunas_imagens = 0
+    for codigo_produto_unico in codigos_processados_ordem:
+        imagens_para_produto = dados_finais_para_csv[codigo_produto_unico]["imagens"]
+        max_colunas_imagens = max(max_colunas_imagens, len(imagens_para_produto))
+    max_colunas_imagens = max(max_colunas_imagens, 1) # Garante que sempre haverá pelo menos @Imagem
 
     try:
         with open(arquivo_csv, mode="w", newline="", encoding="utf-8-sig") as file:
             writer = csv.writer(file, delimiter=';')
-            writer.writerow(["Código", "Nome", "Preço", "@Imagem"])
 
-            for codigo, nome, preco in zip(codigos, nomes, precos):
-<<<<<<< HEAD
+            # Cabeçalhos dinâmicos: Código, Nome, Preço, @Imagem, @Imagem v2, ...
+            cabecalho = ["Código", "Nome", "Preço"]
+            cabecalho += ["@Imagem" if i == 0 else f"@Imagem v{i+1}" for i in range(max_colunas_imagens)]
+            writer.writerow(cabecalho)
+
+            # Iterar sobre os códigos únicos e seus dados consolidados
+            for i, codigo_produto_unico in enumerate(codigos_processados_ordem):
+                escrever_log(f"PROCESSANDO Linha {i+1} (única): Código '{codigo_produto_unico}'")
+
+                info_produto = dados_finais_para_csv[codigo_produto_unico]
+                nome_produto = info_produto["nome"]
+                preco_produto = info_produto["preco"]
+                imagens = info_produto["imagens"] 
                 
-                # Pega o índice da imagem a ser usada para este código (0 para a primeira vez, 1 para a segunda, etc.)
-                indice_da_imagem = contagem_uso_codigos.get(codigo, 0)
-                
-                caminho_final = "Imagem não encontrada"
+                linha = [codigo_produto_unico, nome_produto, preco_produto] + imagens
 
-                # Verifica se o código existe no nosso mapa de imagens
-                if codigo in mapa_de_imagens:
-                    # Verifica se ainda há imagens disponíveis para este índice
-                    if indice_da_imagem < len(mapa_de_imagens[codigo]):
-                        caminho_final = mapa_de_imagens[codigo][indice_da_imagem]
-                        escrever_log(f"Para o código {codigo} (ocorrência {indice_da_imagem + 1}), encontrou: {caminho_final}")
-                    else:
-                        escrever_log(f"AVISO: Código {codigo} repetido, mas não há mais imagens (solicitada a {indice_da_imagem + 1}ª, mas só existem {len(mapa_de_imagens[codigo])}).")
-=======
-                caminho_arquivo = os.path.normpath(os.path.join(pasta_imagens, codigo + extensao))
-                if os.path.exists(caminho_arquivo):
-                    caminho = caminho_arquivo
-                    escrever_log(f"Imagem encontrada: {caminho}")
->>>>>>> 574764e35a7337fc6fb63516a219d0071e23109c
-                else:
-                    escrever_log(f"AVISO: Nenhuma imagem encontrada para o código base: {codigo}")
+                # Preenche com "Imagem não encontrada" se tiver menos imagens que o máximo
+                while len(linha) < len(cabecalho):
+                    linha.append("Imagem não encontrada") 
 
-                writer.writerow([codigo, nome, preco, caminho_final])
+                writer.writerow(linha)
 
-                # Incrementa o contador para a próxima vez que este código aparecer
-                contagem_uso_codigos[codigo] = indice_da_imagem + 1
-
-        escrever_log("CSV gerado com sucesso.")
+        escrever_log("CSV gerado com múltiplas imagens por linha e duplicatas de código/nome/preço removidas.")
         messagebox.showinfo("Sucesso", f"Arquivo CSV gerado com sucesso:\n{os.path.abspath(arquivo_csv)}")
+
     except Exception as e:
         escrever_log(f"ERRO CRÍTICO ao gerar CSV: {str(e)}")
         messagebox.showerror("Erro Inesperado", f"Ocorreu um erro crítico ao gerar o CSV.\nConsulte o arquivo 'log_execucao.txt' para detalhes.")
 
+
 # --- Configuração da Interface Gráfica com Tkinter ---
 if __name__ == "__main__":
     janela = tk.Tk()
-    janela.title("Gerador de CSV de Produtos v2.0")
+    janela.title("Gerador de CSV de Produtos v2.7 (Consolidação de Dados)") 
     janela.geometry("450x350")
     janela.resizable(False, False)
 
@@ -192,6 +235,7 @@ if __name__ == "__main__":
     
     # Botão Principal de Ação
     tk.Button(frame, text="Gerar Arquivo CSV", bg="#4CAF50", fg="white", font=("Helvetica", 10, "bold"), command=gerar_csv, width=30, height=2).pack(pady=(20, 10))
+    # AQUI ESTAVA O ERRO: ANTERIORMENTE ERA "command=generates_csv"
 
     # Iniciar a aplicação
     janela.mainloop()
